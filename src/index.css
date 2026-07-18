@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    background-color: #FDFBF7; /* Cream background */
+  }
+}
+
+@layer utilities {
+  .card-shadow {
+    box-shadow: 0 8px 20px -4px rgba(22, 26, 50, 0.08);
+    transition: all 0.2s ease-in-out;
+  }
+  .card-shadow:active {
+    transform: translateY(2px);
+    box-shadow: 0 4px 12px -2px rgba(22, 26, 50, 0.04);
+  }
+  .text-sage {
+    color: #386753; /* Secondary / Sage */
+  }
+  .bg-sage {
+    background-color: #386753;
+  }
+  .border-sage {
+    border-color: #386753;
+  }
+  .bg-cream {
+    background-color: #FDFBF7;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
