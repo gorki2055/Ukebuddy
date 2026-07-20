@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { audioEngine } from '../lib/audioEngine';
+import * as Tone from 'tone';
 
 type Chord = {
   name: string;
@@ -72,6 +74,11 @@ function ChordDiagram({ dots }: { dots: { string: number, fret: number }[] }) {
 export default function ChordLibrary() {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [useRealSound, setUseRealSound] = useState(true);
+
+  useEffect(() => {
+    audioEngine.useRealSound = useRealSound;
+  }, [useRealSound]);
 
   const filteredChords = chords.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
@@ -79,29 +86,9 @@ export default function ChordLibrary() {
     return matchesSearch && matchesFilter;
   });
 
-  const playChord = (chordName: string) => {
-    // In a real app we would use Tone.js to play the full chord
-    // Here we'll just simulate playing the root note for prototype
-    const ctx = new window.AudioContext();
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    let freq = 261.63; // C by default
-    if (chordName.startsWith('C')) freq = 261.63;
-    if (chordName.startsWith('D')) freq = 293.66;
-    if (chordName.startsWith('E')) freq = 329.63;
-    if (chordName.startsWith('F')) freq = 349.23;
-    if (chordName.startsWith('G')) freq = 392.00;
-    if (chordName.startsWith('A')) freq = 440.00;
-    if (chordName.startsWith('B')) freq = 493.88;
-    
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 1.5);
+  const playChord = async (chordName: string) => {
+    await audioEngine.init();
+    audioEngine.playChord(chordName, Tone.now());
   };
 
   return (
@@ -124,17 +111,34 @@ export default function ChordLibrary() {
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto gap-sm mb-lg pb-xs hide-scrollbar">
-        {['All', 'Basic Chords', 'Minor Chords', '7th Chords', 'Barre Chords', 'Advanced'].map(cat => (
+      {/* Category Tabs & Audio Toggle */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-lg">
+        <div className="flex overflow-x-auto gap-sm pb-xs hide-scrollbar w-full md:w-auto">
+          {['All', 'Basic Chords', 'Minor Chords', '7th Chords', 'Barre Chords', 'Advanced'].map(cat => (
+            <button 
+              key={cat}
+              onClick={() => setFilter(cat)}
+              className={`whitespace-nowrap px-md py-sm rounded-full text-label-md font-label-md transition-colors ${filter === cat ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-variant border border-outline-variant'}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant shadow-sm whitespace-nowrap">
+          <span className="material-symbols-outlined text-secondary">piano</span>
+          <span className="text-body-md font-body-md text-on-surface-variant font-bold">Generated</span>
+          
           <button 
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className={`whitespace-nowrap px-md py-sm rounded-full text-label-md font-label-md transition-colors ${filter === cat ? 'bg-primary-container text-on-primary-container shadow-sm' : 'bg-surface-container text-on-surface-variant hover:bg-surface-variant border border-outline-variant'}`}
+            onClick={() => setUseRealSound(!useRealSound)}
+            className={`w-12 h-6 rounded-full relative transition-colors shadow-inner flex-shrink-0 mx-1 ${useRealSound ? 'bg-primary' : 'bg-outline-variant'}`}
           >
-            {cat}
+            <span className={`absolute top-1 w-4 h-4 bg-surface rounded-full shadow-md transition-all ${useRealSound ? 'right-1' : 'left-1'}`}></span>
           </button>
-        ))}
+          
+          <span className="text-body-md font-body-md text-on-surface-variant font-bold">Ukulele</span>
+          <span className="material-symbols-outlined text-primary">music_note</span>
+        </div>
       </div>
 
       {/* Chord Grid */}

@@ -64,7 +64,7 @@ export default function Auth() {
         <p className="text-body-md text-on-surface-variant text-center mb-lg">
           {isLogin 
             ? 'Sign in to access your saved chords and practice sessions.' 
-            : 'Join Uke Buddy to take your playing to the next level.'}
+            : 'Join Uke Quest to take your playing to the next level.'}
         </p>
 
         {error && (

@@ -18,7 +18,8 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
-    "react-ukelele": "^0.4.9"
+    "react-ukelele": "^0.4.9",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

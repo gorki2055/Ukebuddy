@@ -5,6 +5,8 @@ import { recordPracticeCompletion } from '../lib/streakLogic';
 import { practiceCurriculum } from '../data/practiceLessons';
 import type { LessonCategory, PracticeLesson, ChordData } from '../data/practiceLessons';
 import confetti from 'canvas-confetti';
+import * as Tone from 'tone';
+import { audioEngine } from '../lib/audioEngine';
 
 function ChordVisualizer({ chord, isPlaying, beatCount, idx, total }: { chord: ChordData, isPlaying: boolean, beatCount: number, idx: number, total: number }) {
   const isActive = isPlaying && Math.floor(beatCount / 4) % total === idx;
@@ -79,6 +81,7 @@ export default function Practice() {
   const [bpm, setBpm] = useState(activeLesson.defaultBpm);
   const [useMetronomeClick, setUseMetronomeClick] = useState(true);
   const [playChordSound, setPlayChordSound] = useState(true);
+  const [useRealSound, setUseRealSound] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeLeft, setTimeLeft] = useState(activeLesson.durationSeconds);
   const [exerciseStarted, setExerciseStarted] = useState(false);
@@ -86,10 +89,6 @@ export default function Practice() {
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [newStreakData, setNewStreakData] = useState<number | null>(null);
   
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const timerRef = useRef<number | null>(null);
-  const nextClickTimeRef = useRef<number>(0);
-  const scheduledBeatCountRef = useRef<number>(0);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -100,7 +99,6 @@ export default function Practice() {
     setBpm(activeLesson.defaultBpm);
     setTimeLeft(activeLesson.durationSeconds);
     setBeatCount(0);
-    scheduledBeatCountRef.current = 0;
   }, [activeLesson]);
 
   // When category changes, default to first lesson
@@ -109,25 +107,28 @@ export default function Practice() {
     setActiveLesson(lessons[0]);
   }, [activeCategory]);
 
+  useEffect(() => {
+    audioEngine.useRealSound = useRealSound;
+  }, [useRealSound]);
+
   // Metronome Logic
   useEffect(() => {
-    if (isPlaying) {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new window.AudioContext();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-      nextClickTimeRef.current = ctx.currentTime + 0.1;
+    let eventId: number | null = null;
+    let isActive = true;
 
-      const scheduleClicks = () => {
+    if (isPlaying) {
+      audioEngine.init().then(() => {
+        if (!isActive) return;
+        
+        Tone.Transport.bpm.value = bpm;
+        
+        let localScheduledBeatCount = 0;
         const isStrumming = activeLesson.type === 'strum' && activeLesson.strumPattern;
-        const stepDuration = isStrumming ? (30.0 / bpm) : (60.0 / bpm);
+        const interval = isStrumming ? '8n' : '4n';
         const stepsPerMeasure = isStrumming ? 8 : 4;
 
-        while (nextClickTimeRef.current < ctx.currentTime + 0.1) {
-          const currentStep = scheduledBeatCountRef.current;
+        eventId = Tone.Transport.scheduleRepeat((time) => {
+          const currentStep = localScheduledBeatCount;
           
           const totalChords = activeLesson.chords ? activeLesson.chords.length : 1;
           const activeChordIndex = Math.floor(currentStep / stepsPerMeasure) % totalChords;
@@ -145,64 +146,33 @@ export default function Practice() {
             }
           }
 
-          if (shouldPlayChord) {
-            // Play chord root note sound
-            const osc = ctx.createOscillator();
-            osc.type = 'triangle';
-            let freq = 261.63; // C by default
-            const chordName = activeChord!.name;
-            if (chordName.startsWith('C')) freq = 261.63;
-            if (chordName.startsWith('D')) freq = 293.66;
-            if (chordName.startsWith('E')) freq = 329.63;
-            if (chordName.startsWith('F')) freq = 349.23;
-            if (chordName.startsWith('G')) freq = 392.00;
-            if (chordName.startsWith('A')) freq = 440.00;
-            if (chordName.startsWith('B')) freq = 493.88;
-
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(freq, nextClickTimeRef.current);
-            gain.gain.setValueAtTime(0.5, nextClickTimeRef.current);
-            gain.gain.exponentialRampToValueAtTime(0.001, nextClickTimeRef.current + 1.0);
-            osc.start(nextClickTimeRef.current);
-            osc.stop(nextClickTimeRef.current + 1.0);
+          if (shouldPlayChord && activeChord) {
+            audioEngine.playChord(activeChord.name, time);
           } 
           
           if (useMetronomeClick && isDownbeat) {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            
-            // Short click sound, higher pitch on downbeat
-            osc.frequency.value = (measureBeat === 0) ? 1200 : 800;
-            gain.gain.setValueAtTime(1, nextClickTimeRef.current);
-            gain.gain.exponentialRampToValueAtTime(0.001, nextClickTimeRef.current + 0.05);
-            
-            osc.start(nextClickTimeRef.current);
-            osc.stop(nextClickTimeRef.current + 0.05);
+            audioEngine.playClick(measureBeat === 0, time);
           }
 
-          // Schedule visual update synced with audio
-          const timeUntilClick = (nextClickTimeRef.current - ctx.currentTime) * 1000;
-          window.setTimeout(() => setBeatCount(currentStep + 1), Math.max(0, timeUntilClick));
+          Tone.Draw.schedule(() => {
+            setBeatCount(currentStep + 1);
+          }, time);
 
-          scheduledBeatCountRef.current++;
-          nextClickTimeRef.current += stepDuration;
-        }
-        timerRef.current = window.setTimeout(scheduleClicks, 25);
-      };
-      
-      scheduleClicks();
-    } else {
-      if (timerRef.current) clearTimeout(timerRef.current);
+          localScheduledBeatCount++;
+        }, interval);
+
+        Tone.Transport.start();
+      });
     }
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      isActive = false;
+      if (eventId !== null) {
+        Tone.Transport.clear(eventId);
+      }
+      Tone.Transport.stop();
     };
-  }, [isPlaying, bpm, useMetronomeClick, playChordSound]);
+  }, [isPlaying, bpm, useMetronomeClick, playChordSound, activeLesson]);
 
   // Exercise Timer Logic
   useEffect(() => {
@@ -241,7 +211,6 @@ export default function Practice() {
     if (!isPlaying && !exerciseStarted && timeLeft === activeLesson.durationSeconds) {
       setExerciseStarted(true);
       setBeatCount(0);
-      scheduledBeatCountRef.current = 0;
     }
     setIsPlaying(!isPlaying);
   };
@@ -289,21 +258,21 @@ export default function Practice() {
         {/* Lesson List */}
         <section className="mb-4">
           {categoryLessons.length > 10 ? (
-            <div className="flex justify-between items-center bg-surface p-2 rounded-full border border-outline-variant shadow-sm mx-auto max-w-sm">
+            <div className="flex justify-between items-center bg-surface p-2 rounded-full border border-outline-variant shadow-sm mx-auto w-[90%] max-w-[320px]">
               <button 
                 onClick={() => {
                   const idx = categoryLessons.findIndex(l => l.id === activeLesson.id);
                   if (idx > 0) setActiveLesson(categoryLessons[idx - 1]);
                 }}
                 disabled={activeLesson.id === categoryLessons[0].id}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-variant transition-colors disabled:opacity-30"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-variant transition-colors disabled:opacity-30 flex-shrink-0"
               >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
               
-              <div className="flex flex-col items-center justify-center">
-                <span className="font-bold text-label-md text-on-surface">{activeLesson.title}</span>
-                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">
+              <div className="flex flex-col items-center justify-center overflow-hidden px-2">
+                <span className="font-bold text-label-md text-on-surface whitespace-nowrap truncate">{activeLesson.title}</span>
+                <span className="text-[10px] text-on-surface-variant uppercase tracking-wider whitespace-nowrap">
                   {categoryLessons.findIndex(l => l.id === activeLesson.id) + 1} of {categoryLessons.length}
                 </span>
               </div>
@@ -431,15 +400,28 @@ export default function Practice() {
             </div>
 
             {activeLesson.chords && activeLesson.chords.length > 0 && (
-              <div className="flex justify-between items-center pt-2 border-t border-outline-variant">
-                <span className="text-body-md font-body-md text-on-surface-variant">Play chord sound</span>
-                <button 
-                  onClick={() => setPlayChordSound(!playChordSound)}
-                  className={`w-12 h-6 rounded-full relative transition-colors shadow-inner flex-shrink-0 ${playChordSound ? 'bg-primary' : 'bg-outline-variant'}`}
-                >
-                  <span className={`absolute top-1 w-4 h-4 bg-surface rounded-full shadow-md transition-all ${playChordSound ? 'right-1' : 'left-1'}`}></span>
-                </button>
-              </div>
+              <>
+                <div className="flex justify-between items-center pt-2 border-t border-outline-variant">
+                  <span className="text-body-md font-body-md text-on-surface-variant">Play chord sound</span>
+                  <button 
+                    onClick={() => setPlayChordSound(!playChordSound)}
+                    className={`w-12 h-6 rounded-full relative transition-colors shadow-inner flex-shrink-0 ${playChordSound ? 'bg-primary' : 'bg-outline-variant'}`}
+                  >
+                    <span className={`absolute top-1 w-4 h-4 bg-surface rounded-full shadow-md transition-all ${playChordSound ? 'right-1' : 'left-1'}`}></span>
+                  </button>
+                </div>
+                {playChordSound && (
+                  <div className="flex justify-between items-center pt-2 border-t border-outline-variant">
+                    <span className="text-body-md font-body-md text-on-surface-variant">Use Real Ukulele Audio</span>
+                    <button 
+                      onClick={() => setUseRealSound(!useRealSound)}
+                      className={`w-12 h-6 rounded-full relative transition-colors shadow-inner flex-shrink-0 ${useRealSound ? 'bg-primary' : 'bg-outline-variant'}`}
+                    >
+                      <span className={`absolute top-1 w-4 h-4 bg-surface rounded-full shadow-md transition-all ${useRealSound ? 'right-1' : 'left-1'}`}></span>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -473,7 +455,6 @@ export default function Practice() {
               setExerciseStarted(false);
               setTimeLeft(activeLesson.durationSeconds);
               setBeatCount(0);
-              scheduledBeatCountRef.current = 0;
             }}
             className="w-12 h-12 rounded-full bg-surface shadow-sm border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"
           >
@@ -490,7 +471,7 @@ export default function Practice() {
       
       {showStreakModal && (
         <div className="fixed inset-0 bg-[#161a32]/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-surface rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in duration-300">
+          <div className="bg-surface rounded-3xl p-8 max-w-[380px] w-full shadow-2xl flex flex-col items-center text-center animate-in fade-in zoom-in duration-300">
             <div className="w-20 h-20 bg-primary-container rounded-full flex items-center justify-center mb-6 shadow-inner">
               <span className="material-symbols-outlined text-[40px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
             </div>

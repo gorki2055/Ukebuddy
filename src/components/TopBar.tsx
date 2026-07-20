@@ -15,7 +15,7 @@ export default function TopBar() {
     <header className="hidden md:flex bg-surface flex justify-between items-center w-full px-margin-mobile h-16 fixed top-0 z-50 shadow-sm border-b border-outline-variant/30">
       <Link to="/" className="flex items-center gap-sm hover:opacity-80 transition-opacity">
         <span className="material-symbols-outlined text-headline-md" style={{ fontVariationSettings: "'FILL' 1" }}>music_note</span>
-        <span className="text-headline-md font-headline-md font-extrabold text-primary">UkeBuddy</span>
+        <span className="text-headline-md font-headline-md font-extrabold text-primary">UkeQuest</span>
       </Link>
       <nav className="flex gap-md mr-4">
         <Link to="/" className={getLinkClass('/')}>
