@@ -1,11 +1,49 @@
 import { useState } from 'react';
 
-const chords = [
-  { name: 'C', level: 'Beginner', levelColor: 'bg-secondary-container text-on-secondary-container', dots: [{ string: 4, fret: 3 }] },
-  { name: 'F', level: 'Beginner', levelColor: 'bg-secondary-container text-on-secondary-container', dots: [{ string: 1, fret: 2 }, { string: 3, fret: 1 }] },
-  { name: 'G', level: 'Beginner', levelColor: 'bg-secondary-container text-on-secondary-container', dots: [{ string: 2, fret: 2 }, { string: 3, fret: 3 }, { string: 4, fret: 2 }] },
-  { name: 'Am', level: 'Beginner', levelColor: 'bg-secondary-container text-on-secondary-container', dots: [{ string: 1, fret: 2 }] },
-  { name: 'G7', level: 'Intermediate', levelColor: 'bg-tertiary-fixed text-on-tertiary-fixed', dots: [{ string: 2, fret: 2 }, { string: 3, fret: 1 }, { string: 4, fret: 2 }] },
+type Chord = {
+  name: string;
+  level: string;
+  levelColor: string;
+  categories: string[];
+  dots: { string: number, fret: number }[];
+};
+
+const beginnerColor = 'bg-secondary-container text-on-secondary-container';
+const intermediateColor = 'bg-tertiary-fixed text-on-tertiary-fixed';
+const advancedColor = 'bg-error-container text-on-error-container';
+
+const chords: Chord[] = [
+  // Majors (Basic)
+  { name: 'C', level: 'Beginner', levelColor: beginnerColor, categories: ['Basic Chords'], dots: [{ string: 4, fret: 3 }] },
+  { name: 'D', level: 'Beginner', levelColor: beginnerColor, categories: ['Basic Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 2 }, { string: 3, fret: 2 }] },
+  { name: 'E', level: 'Intermediate', levelColor: intermediateColor, categories: ['Basic Chords', 'Barre Chords'], dots: [{ string: 1, fret: 4 }, { string: 2, fret: 4 }, { string: 3, fret: 4 }, { string: 4, fret: 2 }] },
+  { name: 'F', level: 'Beginner', levelColor: beginnerColor, categories: ['Basic Chords'], dots: [{ string: 1, fret: 2 }, { string: 3, fret: 1 }] },
+  { name: 'G', level: 'Beginner', levelColor: beginnerColor, categories: ['Basic Chords'], dots: [{ string: 2, fret: 2 }, { string: 3, fret: 3 }, { string: 4, fret: 2 }] },
+  { name: 'A', level: 'Beginner', levelColor: beginnerColor, categories: ['Basic Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 1 }] },
+  { name: 'B', level: 'Intermediate', levelColor: intermediateColor, categories: ['Basic Chords', 'Barre Chords'], dots: [{ string: 1, fret: 4 }, { string: 2, fret: 3 }, { string: 3, fret: 2 }, { string: 4, fret: 2 }] },
+
+  // Minors
+  { name: 'Cm', level: 'Intermediate', levelColor: intermediateColor, categories: ['Minor Chords', 'Barre Chords'], dots: [{ string: 2, fret: 3 }, { string: 3, fret: 3 }, { string: 4, fret: 3 }] },
+  { name: 'Dm', level: 'Beginner', levelColor: beginnerColor, categories: ['Minor Chords', 'Basic Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 2 }, { string: 3, fret: 1 }] },
+  { name: 'Em', level: 'Beginner', levelColor: beginnerColor, categories: ['Minor Chords'], dots: [{ string: 2, fret: 4 }, { string: 3, fret: 3 }, { string: 4, fret: 2 }] },
+  { name: 'Fm', level: 'Intermediate', levelColor: intermediateColor, categories: ['Minor Chords'], dots: [{ string: 1, fret: 1 }, { string: 3, fret: 1 }, { string: 4, fret: 3 }] },
+  { name: 'Gm', level: 'Intermediate', levelColor: intermediateColor, categories: ['Minor Chords'], dots: [{ string: 2, fret: 2 }, { string: 3, fret: 3 }, { string: 4, fret: 1 }] },
+  { name: 'Am', level: 'Beginner', levelColor: beginnerColor, categories: ['Minor Chords', 'Basic Chords'], dots: [{ string: 1, fret: 2 }] },
+  { name: 'Bm', level: 'Intermediate', levelColor: intermediateColor, categories: ['Minor Chords', 'Barre Chords'], dots: [{ string: 1, fret: 4 }, { string: 2, fret: 2 }, { string: 3, fret: 2 }, { string: 4, fret: 2 }] },
+
+  // 7ths
+  { name: 'C7', level: 'Beginner', levelColor: beginnerColor, categories: ['7th Chords', 'Basic Chords'], dots: [{ string: 4, fret: 1 }] },
+  { name: 'D7', level: 'Beginner', levelColor: beginnerColor, categories: ['7th Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 2 }, { string: 3, fret: 2 }, { string: 4, fret: 3 }] },
+  { name: 'E7', level: 'Beginner', levelColor: beginnerColor, categories: ['7th Chords'], dots: [{ string: 1, fret: 1 }, { string: 2, fret: 2 }, { string: 4, fret: 2 }] },
+  { name: 'F7', level: 'Intermediate', levelColor: intermediateColor, categories: ['7th Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 3 }, { string: 3, fret: 1 }, { string: 4, fret: 3 }] },
+  { name: 'G7', level: 'Beginner', levelColor: beginnerColor, categories: ['7th Chords', 'Basic Chords'], dots: [{ string: 2, fret: 2 }, { string: 3, fret: 1 }, { string: 4, fret: 2 }] },
+  { name: 'A7', level: 'Beginner', levelColor: beginnerColor, categories: ['7th Chords'], dots: [{ string: 2, fret: 1 }] },
+  { name: 'B7', level: 'Intermediate', levelColor: intermediateColor, categories: ['7th Chords', 'Barre Chords'], dots: [{ string: 1, fret: 2 }, { string: 2, fret: 3 }, { string: 3, fret: 2 }, { string: 4, fret: 2 }] },
+  
+  // Advanced
+  { name: 'Cmaj7', level: 'Intermediate', levelColor: intermediateColor, categories: ['Advanced'], dots: [{ string: 4, fret: 2 }] },
+  { name: 'Gmaj7', level: 'Advanced', levelColor: advancedColor, categories: ['Advanced'], dots: [{ string: 2, fret: 2 }, { string: 3, fret: 2 }, { string: 4, fret: 2 }] },
+  { name: 'Ddim', level: 'Advanced', levelColor: advancedColor, categories: ['Advanced'], dots: [{ string: 1, fret: 1 }, { string: 2, fret: 2 }, { string: 3, fret: 1 }, { string: 4, fret: 2 }] },
 ];
 
 function ChordDiagram({ dots }: { dots: { string: number, fret: number }[] }) {
@@ -32,10 +70,14 @@ function ChordDiagram({ dots }: { dots: { string: number, fret: number }[] }) {
 }
 
 export default function ChordLibrary() {
-  const [filter, setFilter] = useState('Basic Chords');
+  const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  const filteredChords = chords.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredChords = chords.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === 'All' || c.categories.includes(filter);
+    return matchesSearch && matchesFilter;
+  });
 
   const playChord = (chordName: string) => {
     // In a real app we would use Tone.js to play the full chord
@@ -44,9 +86,13 @@ export default function ChordLibrary() {
     const osc = ctx.createOscillator();
     osc.type = 'triangle';
     let freq = 261.63; // C by default
-    if (chordName === 'F') freq = 349.23;
+    if (chordName.startsWith('C')) freq = 261.63;
+    if (chordName.startsWith('D')) freq = 293.66;
+    if (chordName.startsWith('E')) freq = 329.63;
+    if (chordName.startsWith('F')) freq = 349.23;
     if (chordName.startsWith('G')) freq = 392.00;
     if (chordName.startsWith('A')) freq = 440.00;
+    if (chordName.startsWith('B')) freq = 493.88;
     
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
     const gain = ctx.createGain();
@@ -80,7 +126,7 @@ export default function ChordLibrary() {
 
       {/* Category Tabs */}
       <div className="flex overflow-x-auto gap-sm mb-lg pb-xs hide-scrollbar">
-        {['Basic Chords', 'Minor Chords', '7th Chords', 'Barre Chords', 'Advanced'].map(cat => (
+        {['All', 'Basic Chords', 'Minor Chords', '7th Chords', 'Barre Chords', 'Advanced'].map(cat => (
           <button 
             key={cat}
             onClick={() => setFilter(cat)}

@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function BottomNav() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const getLinkClass = (path: string) => {
     return location.pathname === path
@@ -27,6 +29,18 @@ export default function BottomNav() {
         <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/practice' ? "'FILL' 1" : "'FILL' 0" }}>metro</span>
         <span className="text-[12px] font-label-md mt-1">Practice</span>
       </Link>
+      {/* Auth Link */}
+      {user ? (
+        <button onClick={() => signOut()} className="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant rounded-full transition-colors">
+          <span className="material-symbols-outlined">logout</span>
+          <span className="text-[12px] font-label-md mt-1">Sign Out</span>
+        </button>
+      ) : (
+        <Link to="/auth" className={getLinkClass('/auth')}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/auth' ? "'FILL' 1" : "'FILL' 0" }}>account_circle</span>
+          <span className="text-[12px] font-label-md mt-1">Sign In</span>
+        </Link>
+      )}
     </nav>
   );
 }

@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function TopBar() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const getLinkClass = (path: string) => {
     return location.pathname === path
@@ -32,6 +34,19 @@ export default function TopBar() {
           <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/practice' ? "'FILL' 1" : "'FILL' 0" }}>metro</span>
           <span className="text-label-md font-label-md mt-1">Practice</span>
         </Link>
+        
+        {/* Auth Link */}
+        {user ? (
+          <button onClick={() => signOut()} className="text-on-surface-variant flex flex-col items-center justify-center hover:opacity-80 transition-opacity">
+            <span className="material-symbols-outlined">logout</span>
+            <span className="text-label-md font-label-md mt-1">Sign Out</span>
+          </button>
+        ) : (
+          <Link to="/auth" className={getLinkClass('/auth')}>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/auth' ? "'FILL' 1" : "'FILL' 0" }}>account_circle</span>
+            <span className="text-label-md font-label-md mt-1">Sign In</span>
+          </Link>
+        )}
       </nav>
     </header>
   );

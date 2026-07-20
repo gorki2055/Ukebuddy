@@ -1,37 +1,78 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { getUserProfile } from '../lib/streakLogic';
 
 export default function Home() {
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<{ display_name: string | null, streak: number } | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      getUserProfile(user.id).then(data => {
+        if (data) setProfileData(data as any);
+      });
+    }
+  }, [user]);
+  
+  const displayName = profileData?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Friend';
+  const streak = profileData?.streak ?? user?.user_metadata?.streak ?? 0;
   return (
     <main className="flex-grow max-w-[1200px] w-full mx-auto px-margin-mobile md:px-lg pt-lg md:pt-xl pb-xl">
-      {/* Hero Section */}
-      <section className="flex flex-col md:flex-row items-center justify-between gap-lg mb-xl relative">
-        <div className="flex-1 text-center md:text-left z-10">
-          <h1 className="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg text-on-surface mb-sm">
-            Your Ukulele Journey Starts Here
-          </h1>
-          <p className="text-body-lg font-body-lg text-on-surface-variant mb-md max-w-[448px] mx-auto md:mx-0">
-            Learn chords, master strumming, and play your favorite songs with our interactive practice tools.
-          </p>
-          <Link to="/practice" className="inline-block bg-primary-container text-on-error font-label-md text-label-md py-3 px-6 rounded-full hover:bg-surface-tint transition-colors card-shadow">
-            Get Started
-          </Link>
-        </div>
-        <div className="flex-1 w-full max-w-[384px] md:max-w-[448px] relative animate-float">
-          {/* Abstract decorative element mimicking an instrument */}
-          <div className="w-full aspect-square rounded-[40px] bg-tertiary-fixed flex items-center justify-center relative overflow-hidden card-shadow">
-            <div className="absolute w-3/4 h-3/4 bg-primary rounded-full opacity-20 blur-2xl top-0 left-0"></div>
-            <div className="absolute w-1/2 h-1/2 bg-secondary rounded-full opacity-20 blur-2xl bottom-0 right-0"></div>
-            <span className="material-symbols-outlined text-[120px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>music_note</span>
-            {/* Fretboard abstraction */}
-            <div className="absolute right-[10%] top-[20%] w-[20%] h-[60%] border-4 border-on-surface rounded-md flex flex-col justify-around bg-surface-container opacity-80">
-              <div className="w-full h-1 bg-on-surface"></div>
-              <div className="w-full h-1 bg-on-surface"></div>
-              <div className="w-full h-1 bg-on-surface"></div>
-              <div className="w-full h-1 bg-on-surface"></div>
+      {/* Hero / Dashboard Section */}
+      {user ? (
+        <section className="bg-surface-container-low rounded-[32px] p-xl mb-xl card-shadow border border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary rounded-bl-full opacity-10 -z-10 translate-x-1/4 -translate-y-1/4"></div>
+          
+          <div className="flex-1 text-center md:text-left z-10">
+            <div className="inline-flex items-center gap-2 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-label-md font-label-md mb-md">
+              <span className="material-symbols-outlined text-[18px]">waving_hand</span>
+              Welcome back
+            </div>
+            <h1 className="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg text-on-surface mb-sm">
+              {displayName}!
+            </h1>
+            <p className="text-body-lg font-body-lg text-on-surface-variant max-w-[448px] mx-auto md:mx-0">
+              Ready for today's session? Let's keep the momentum going and master those chords.
+            </p>
+          </div>
+          
+          <div className="flex-shrink-0 z-10 bg-surface p-lg rounded-2xl border border-outline-variant/50 flex flex-col items-center justify-center min-w-[200px] shadow-sm">
+            <span className="material-symbols-outlined text-[48px] text-primary mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+            <span className="text-headline-md font-headline-md text-on-surface mb-1">{streak}</span>
+            <span className="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider">Day Streak</span>
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col md:flex-row items-center justify-between gap-lg mb-xl relative">
+          <div className="flex-1 text-center md:text-left z-10">
+            <h1 className="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg text-on-surface mb-sm">
+              Your Ukulele Journey Starts Here
+            </h1>
+            <p className="text-body-lg font-body-lg text-on-surface-variant mb-md max-w-[448px] mx-auto md:mx-0">
+              Learn chords, master strumming, and play your favorite songs with our interactive practice tools.
+            </p>
+            <Link to="/practice" className="inline-block bg-primary-container text-on-error font-label-md text-label-md py-3 px-6 rounded-full hover:bg-surface-tint transition-colors card-shadow">
+              Get Started
+            </Link>
+          </div>
+          <div className="flex-1 w-full max-w-[384px] md:max-w-[448px] relative animate-float">
+            {/* Abstract decorative element mimicking an instrument */}
+            <div className="w-full aspect-square rounded-[40px] bg-tertiary-fixed flex items-center justify-center relative overflow-hidden card-shadow">
+              <div className="absolute w-3/4 h-3/4 bg-primary rounded-full opacity-20 blur-2xl top-0 left-0"></div>
+              <div className="absolute w-1/2 h-1/2 bg-secondary rounded-full opacity-20 blur-2xl bottom-0 right-0"></div>
+              <span className="material-symbols-outlined text-[120px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>music_note</span>
+              {/* Fretboard abstraction */}
+              <div className="absolute right-[10%] top-[20%] w-[20%] h-[60%] border-4 border-on-surface rounded-md flex flex-col justify-around bg-surface-container opacity-80">
+                <div className="w-full h-1 bg-on-surface"></div>
+                <div className="w-full h-1 bg-on-surface"></div>
+                <div className="w-full h-1 bg-on-surface"></div>
+                <div className="w-full h-1 bg-on-surface"></div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       
       {/* Core Tools (Bento Grid Style) */}
       <section className="mb-xl">
