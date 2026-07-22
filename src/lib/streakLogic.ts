@@ -1,17 +1,18 @@
 import { supabase } from './supabase';
 
-export async function recordPracticeCompletion(userId: string) {
+export async function recordPracticeCompletion(userId: string, durationMinutes: number = 0, lessonId?: string, bpm?: number) {
   try {
-    // 1. Fetch current profile to get current streak
+    // 1. Fetch current profile to get current streak and total time
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('streak')
+      .select('streak, total_practice_minutes')
       .eq('id', userId)
       .single();
       
     if (profileError) throw profileError;
 
     const currentStreak = profile?.streak || 0;
+    const currentTotalMinutes = profile?.total_practice_minutes || 0;
 
     // 2. Fetch the most recent daily_progress
     const { data: lastProgress, error: progressError } = await supabase
@@ -66,13 +67,45 @@ export async function recordPracticeCompletion(userId: string) {
       
     if (insertError) throw insertError;
 
-    // 4. Update user profile streak
+    // 4. Update user profile streak & time
     const { error: updateError } = await supabase
       .from('user_profiles')
-      .update({ streak: newStreak })
+      .update({ 
+        streak: newStreak,
+        total_practice_minutes: currentTotalMinutes + durationMinutes 
+      })
       .eq('id', userId);
 
     if (updateError) throw updateError;
+
+    // 5. Record specific lesson progress if provided
+    if (lessonId) {
+      // Check if already completed to update best_bpm
+      const { data: existingLesson } = await supabase
+        .from('user_lesson_progress')
+        .select('best_bpm')
+        .eq('user_id', userId)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+
+      if (existingLesson) {
+        if (bpm && bpm > existingLesson.best_bpm) {
+          await supabase
+            .from('user_lesson_progress')
+            .update({ best_bpm: bpm, updated_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .eq('lesson_id', lessonId);
+        }
+      } else {
+        await supabase
+          .from('user_lesson_progress')
+          .insert({
+            user_id: userId,
+            lesson_id: lessonId,
+            best_bpm: bpm || 0
+          });
+      }
+    }
 
     return { success: true, newStreak };
 
@@ -86,7 +119,7 @@ export async function getUserProfile(userId: string) {
   try {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('display_name, streak')
+      .select('display_name, streak, total_practice_minutes')
       .eq('id', userId)
       .single();
       
@@ -95,5 +128,20 @@ export async function getUserProfile(userId: string) {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return null;
+  }
+}
+
+export async function getUserCompletedLessons(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('user_lesson_progress')
+      .select('lesson_id, best_bpm')
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching lesson progress:', error);
+    return [];
   }
 }

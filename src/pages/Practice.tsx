@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { recordPracticeCompletion } from '../lib/streakLogic';
+import { recordPracticeCompletion, getUserCompletedLessons } from '../lib/streakLogic';
 import { practiceCurriculum } from '../data/practiceLessons';
 import type { LessonCategory, PracticeLesson, ChordData } from '../data/practiceLessons';
 import confetti from 'canvas-confetti';
@@ -88,9 +88,21 @@ export default function Practice() {
   const [beatCount, setBeatCount] = useState(0);
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [newStreakData, setNewStreakData] = useState<number | null>(null);
+  const [completedLessons, setCompletedLessons] = useState<{ lesson_id: string, best_bpm: number }[]>([]);
   
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const fetchCompletedLessons = async () => {
+    if (user) {
+      const lessons = await getUserCompletedLessons(user.id);
+      setCompletedLessons(lessons);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompletedLessons();
+  }, [user]);
 
   // Reset exercise when lesson changes
   useEffect(() => {
@@ -196,11 +208,13 @@ export default function Practice() {
       
       // TRIGGER DATABASE UPDATE
       if (user) {
-        recordPracticeCompletion(user.id).then(res => {
+        const durationMinutes = Math.ceil(activeLesson.durationSeconds / 60);
+        recordPracticeCompletion(user.id, durationMinutes, activeLesson.id, bpm).then(res => {
           if (res.success && res.newStreak) {
             console.log('Practice recorded! New streak:', res.newStreak);
             setNewStreakData(res.newStreak);
           }
+          fetchCompletedLessons();
         });
       }
     }
@@ -271,7 +285,12 @@ export default function Practice() {
               </button>
               
               <div className="flex flex-col items-center justify-center overflow-hidden px-2">
-                <span className="font-bold text-label-md text-on-surface whitespace-nowrap truncate">{activeLesson.title}</span>
+                <span className="font-bold text-label-md text-on-surface whitespace-nowrap truncate flex items-center gap-1">
+                  {activeLesson.title}
+                  {completedLessons.some(l => l.lesson_id === activeLesson.id) && (
+                    <span className="material-symbols-outlined text-[16px] text-[#386753]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  )}
+                </span>
                 <span className="text-[10px] text-on-surface-variant uppercase tracking-wider whitespace-nowrap">
                   {categoryLessons.findIndex(l => l.id === activeLesson.id) + 1} of {categoryLessons.length}
                 </span>
@@ -305,7 +324,12 @@ export default function Practice() {
                   style={{ width: '220px' }}
                 >
                   <span className="font-label-md text-sm opacity-80">{Math.floor(lesson.durationSeconds / 60)}:{(lesson.durationSeconds % 60).toString().padStart(2, '0')}</span>
-                  <span className="font-bold text-body-md truncate">{lesson.title}</span>
+                  <span className="font-bold text-body-md truncate flex justify-between items-center w-full">
+                    {lesson.title}
+                    {completedLessons.some(l => l.lesson_id === lesson.id) && (
+                      <span className="material-symbols-outlined text-[16px] text-[#386753]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    )}
+                  </span>
                 </button>
               ))}
             </div>

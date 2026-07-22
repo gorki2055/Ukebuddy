@@ -5,6 +5,7 @@ import Tuner from './pages/Tuner';
 import ChordLibrary from './pages/ChordLibrary';
 import Practice from './pages/Practice';
 import Auth from './pages/Auth';
+import Dashboard from './pages/Dashboard';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
             <Route path="tuner" element={<Tuner />} />
             <Route path="chords" element={<ChordLibrary />} />
             <Route path="practice" element={<Practice />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="auth" element={<Auth />} />
           </Route>
         </Routes>

@@ -29,6 +29,10 @@ export default function BottomNav() {
         <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/practice' ? "'FILL' 1" : "'FILL' 0" }}>metro</span>
         <span className="text-[12px] font-label-md mt-1">Practice</span>
       </Link>
+      <Link to="/dashboard" className={getLinkClass('/dashboard')}>
+        <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/dashboard' ? "'FILL' 1" : "'FILL' 0" }}>insert_chart</span>
+        <span className="text-[12px] font-label-md mt-1">Dashboard</span>
+      </Link>
       {/* Auth Link */}
       {user ? (
         <button onClick={() => signOut()} className="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant rounded-full transition-colors">

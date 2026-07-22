@@ -34,6 +34,10 @@ export default function TopBar() {
           <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/practice' ? "'FILL' 1" : "'FILL' 0" }}>metro</span>
           <span className="text-label-md font-label-md mt-1">Practice</span>
         </Link>
+        <Link to="/dashboard" className={getLinkClass('/dashboard')}>
+          <span className="material-symbols-outlined" style={{ fontVariationSettings: location.pathname === '/dashboard' ? "'FILL' 1" : "'FILL' 0" }}>insert_chart</span>
+          <span className="text-label-md font-label-md mt-1">Dashboard</span>
+        </Link>
         
         {/* Auth Link */}
         {user ? (
